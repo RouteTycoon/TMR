@@ -44,9 +44,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ClientSock.cs" />
+    <Compile Include="Client.cs" />
+    <Compile Include="ClientHandler.cs" />
+    <Compile Include="EventArgs.cs" />
+    <Compile Include="Handlers.cs" />
+    <Compile Include="Message.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ServerSock.cs" />
+    <Compile Include="Server.cs" />
+    <Compile Include="ServerData.cs" />
+    <Compile Include="User.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
