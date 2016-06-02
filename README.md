@@ -15,3 +15,4 @@ Original : RTMApi (Made by Hawaii)
    * TMR.Server.Data.MaxUserCount Property Not working
 * TMR.Client Class
    * TMR.Client.Joined Event Early runs
+   * TMR.Client.Server.MaxUserCount Property Set error
