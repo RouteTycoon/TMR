@@ -6,3 +6,12 @@ RouteTycoon Network Module<br>ⓒ 2016. Team Atus, HawTech All rights reserved.
 
 ## Info
 Original : RTMApi (Made by Hawaii)
+
+## ChangeLog
+* No Data
+
+## Problem
+* TMR.Server Class
+   * TMR.Server.Data.MaxUserCount Property Not working
+* TMR.Client Class
+   * TMR.Client.Joined Event Early runs
