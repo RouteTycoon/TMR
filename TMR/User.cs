@@ -21,13 +21,19 @@ namespace TMR
 			set;
 		}
 
-		public string Nickname
+		public string GUID
 		{
 			get;
 			set;
 		}
 
 		public string IP
+		{
+			get;
+			set;
+		}
+
+		public int Port
 		{
 			get;
 			set;

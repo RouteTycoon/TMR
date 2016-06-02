@@ -8,13 +8,14 @@ namespace TMR
 {
 	public class UserEventArgs : EventArgs
 	{
-		public UserEventArgs(string nickname, string ip)
+		public UserEventArgs(string guid, string ip, int port)
 		{
-			Nickname = nickname;
+			GUID = guid;
 			IP = ip;
+			Port = port;
 		}
 
-		public string Nickname
+		public string GUID
 		{
 			get;
 			internal set;
@@ -25,11 +26,17 @@ namespace TMR
 			get;
 			internal set;
 		}
+
+		public int Port
+		{
+			get;
+			internal set;
+		}
 	}
 
 	public class KickEventArgs : UserEventArgs
 	{
-		public KickEventArgs(string nickname, string ip, string reason) : base(nickname, ip)
+		public KickEventArgs(string nickname, string ip, int port, string reason) : base(nickname, ip, port)
 		{
 			Reason = reason;
 		}

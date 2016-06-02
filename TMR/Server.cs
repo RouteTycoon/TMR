@@ -32,12 +32,12 @@ namespace TMR
 
 		private void Server_ReceiveMessage(MessageEventArgs e)
 		{
-			if(e.Message.Type == MessageType.Left)
+			if (e.Message.Type == MessageType.Left)
 			{
-				User u = Users.Find((ev) => { return ev.Nickname == e.Message.Text; });
-                Users.Remove(u);
-				if(LeftUser != null)
-					LeftUser(new UserEventArgs(u.Nickname, u.IP));
+				User u = Users.Find((ev) => { return ev.GUID == e.Message.Text; });
+				Users.Remove(u);
+				if (LeftUser != null)
+					LeftUser(new UserEventArgs(u.GUID, u.IP, u.Port));
 				return;
 			}
 		}
@@ -68,6 +68,11 @@ namespace TMR
 						sock.Send(new Message() { Type = MessageType.Kick, Text = "Server Closed." });
 						return;
 					}
+					else if (Data.MaxUserCount <= Users.Count)
+					{
+						sock.Send(new Message() { Type = MessageType.Kick, Text = "Server Full." });
+						return;
+					}
 
 					ClientHandler handler = new ClientHandler(sock, ReceiveMessage);
 
@@ -86,9 +91,9 @@ namespace TMR
 					int len = sock.Receive(buffer);
 
 					if (JoinedUser != null)
-						JoinedUser(new UserEventArgs(Encoding.UTF8.GetString(buffer, 0, len), ((IPEndPoint)sock.RemoteEndPoint).Address.ToString()));
+						JoinedUser(new UserEventArgs(Encoding.UTF8.GetString(buffer, 0, len), ((IPEndPoint)sock.RemoteEndPoint).Address.ToString(), ((IPEndPoint)sock.RemoteEndPoint).Port));
 
-					Users.Add(new User() { Nickname = Encoding.UTF8.GetString(buffer, 0, len), IP = ((IPEndPoint)sock.RemoteEndPoint).Address.ToString(), Handler = handler, Socket = sock });
+					Users.Add(new User() { GUID = Encoding.UTF8.GetString(buffer, 0, len), IP = ((IPEndPoint)sock.RemoteEndPoint).Address.ToString(), Port = ((IPEndPoint)sock.RemoteEndPoint).Port, Handler = handler, Socket = sock });
 				}
 			}
 			catch (Exception ex)
@@ -138,7 +143,7 @@ namespace TMR
 			Users.Remove(u);
 
 			if (KickedUser != null)
-				KickedUser(new KickEventArgs(u.Nickname, u.IP, Reason));
+				KickedUser(new KickEventArgs(u.GUID, u.IP, u.Port, Reason));
 		}
 	}
 }

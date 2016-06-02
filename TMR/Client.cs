@@ -31,7 +31,7 @@ namespace TMR
 			set;
 		}
 
-		public string Nickname
+		public string GUID
 		{
 			get;
 			set;
@@ -47,9 +47,6 @@ namespace TMR
 
 			Server = new ServerData();
 
-			if (Joined != null)
-				Joined(new UserEventArgs(Nickname, ((IPEndPoint)_client.Client.RemoteEndPoint).Address.ToString()));
-
 			ReceiveMessage += Client_ReceiveMessage;
 		}
 
@@ -57,7 +54,7 @@ namespace TMR
 		{
 			if (Server.ServerName == string.Empty)
 			{
-				_client.Client.Send(Encoding.UTF8.GetBytes(Nickname));
+				_client.Client.Send(Encoding.UTF8.GetBytes(GUID));
 				Server.ServerName = e.Message.Text;
 				return;
 			}
@@ -72,10 +69,10 @@ namespace TMR
 			{
 				isRun = false;
 
-				_client.Client.Send(new Message() { Type = MessageType.Left, Text = Nickname });
+				_client.Client.Send(new Message() { Type = MessageType.Left, Text = GUID });
 
 				if (Kicked != null)
-					Kicked(new KickEventArgs(Nickname, ((IPEndPoint)_client.Client.RemoteEndPoint).Address.ToString(), e.Message.Text));
+					Kicked(new KickEventArgs(GUID, ((IPEndPoint)_client.Client.RemoteEndPoint).Address.ToString(), ((IPEndPoint)_client.Client.RemoteEndPoint).Port, e.Message.Text));
 
 				_client.Close();
 			}
@@ -83,6 +80,9 @@ namespace TMR
 
 		public void Start()
 		{
+			if (Joined != null)
+				Joined(new UserEventArgs(GUID, ((IPEndPoint)_client.Client.RemoteEndPoint).Address.ToString(), ((IPEndPoint)_client.Client.RemoteEndPoint).Port));
+
 			isRun = true;
 
 			while (isRun)
@@ -103,10 +103,10 @@ namespace TMR
 		{
 			isRun = false;
 
-			_client.Client.Send(new Message() { Type = MessageType.Left, Text = Nickname });
+			_client.Client.Send(new Message() { Type = MessageType.Left, Text = GUID });
 
 			if (Left != null)
-				Left(new UserEventArgs(Nickname, ((IPEndPoint)_client.Client.RemoteEndPoint).Address.ToString()));
+				Left(new UserEventArgs(GUID, ((IPEndPoint)_client.Client.RemoteEndPoint).Address.ToString(), ((IPEndPoint)_client.Client.RemoteEndPoint).Port));
 
 			_client.Close();
 		}
