@@ -36,21 +36,53 @@ namespace TMR
 
 		public static byte[] Receive(Socket sock)
 		{
-			byte[] size = new byte[4];
-			sock.Receive(size, 0, size.Length, 0);
+			byte[] sizeBuf = new byte[4];
+			sock.Receive(sizeBuf, 0, sizeBuf.Length, 0);
 
-			int byte_size = BitConverter.ToInt32(size, 0);
+			int size = BitConverter.ToInt32(sizeBuf, 0);
+			MemoryStream ms = new MemoryStream();
 
-			byte[] buffer = new byte[byte_size];
-			sock.Receive(buffer, 0, buffer.Length, 0);
+			while (size > 0)
+			{
+				byte[] buffer;
+				if (size < sock.ReceiveBufferSize)
+					buffer = new byte[size];
+				else
+					buffer = new byte[sock.ReceiveBufferSize];
 
-			return buffer;
+				int rec = sock.Receive(buffer, 0, buffer.Length, 0);
+				size -= rec;
+
+				List<byte> b = new List<byte>();
+
+				for (int i = 0; i < rec; i++)
+				{
+					b.Add(buffer[i]);
+				}
+
+				byte[] buf = b.ToArray();
+
+				ms.Write(buf, 0, buffer.Length);
+			}
+
+			ms.Close();
+
+			byte[] data = ms.ToArray();
+
+			ms.Dispose();
+
+			return data;
 		}
 
 		public static void Send(Socket sock, byte[] data)
 		{
-			sock.Send(BitConverter.GetBytes(data.Length));
+			sock.Send(BitConverter.GetBytes(data.Length), 0, 4, 0);
 			sock.Send(data);
+		}
+
+		public static byte[] FileToBytes(string path)
+		{
+			return File.ReadAllBytes(path);
 		}
 	}
 }

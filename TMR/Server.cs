@@ -80,8 +80,6 @@ namespace TMR
 					byte[] info = new Message() { Type = MessageType.Info, Text = Data.ServerName };
 					Utility.Send(sock, info);
 
-					Thread.Sleep(500);
-
 					info = new Message() { Type = MessageType.Info, Text = Data.MaxUserCount.ToString() };
 					Utility.Send(sock, info);
 
