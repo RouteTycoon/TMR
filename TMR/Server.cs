@@ -24,10 +24,9 @@ namespace TMR
 		public event MessageEventHandler ReceiveMessage;
 		#endregion
 
-		public Server(IPAddress ip, int port = 31120)
+		public Server(int port = 31120)
 		{
-			_listener = new TcpListener(ip, port);
-			_listener.Start();
+			_listener = new TcpListener(IPAddress.Parse("127.0.0.1"), port);
 			ReceiveMessage += Server_ReceiveMessage;
 		}
 
@@ -59,6 +58,7 @@ namespace TMR
 		{
 			try
 			{
+				_listener.Start();
 				isRun = true;
 				while (isRun)
 				{
