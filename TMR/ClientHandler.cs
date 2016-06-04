@@ -31,15 +31,14 @@ namespace TMR
 			stream = new NetworkStream(_sock);
 			sr = new StreamReader(stream, Encoding.UTF8);
 
-			byte[] buffer = new byte[2048];
-
 			isRun = true;
 
 			while (isRun)
 			{
 				try
 				{
-					int len = _sock.Receive(buffer);
+					byte[] buffer = Utility.Receive(_sock);
+					int len = buffer.Length;
 
 					if (!isRun) return;
 

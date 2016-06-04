@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing.Imaging;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -65,30 +66,33 @@ namespace TMR
 
 					if (!isRun)
 					{
-						sock.Send(new Message() { Type = MessageType.Kick, Text = "Server Closed." });
+						Utility.Send(sock, new Message() { Type = MessageType.Kick, Text = "Server Closed." });
 						return;
 					}
 					else if (Data.MaxUserCount <= Users.Count)
 					{
-						sock.Send(new Message() { Type = MessageType.Kick, Text = "Server Full." });
+						Utility.Send(sock, new Message() { Type = MessageType.Kick, Text = "Server Full." });
 						return;
 					}
 
 					ClientHandler handler = new ClientHandler(sock, ReceiveMessage);
 
 					byte[] info = new Message() { Type = MessageType.Info, Text = Data.ServerName };
-					sock.Send(info, info.Length, SocketFlags.None);
+					Utility.Send(sock, info);
 
 					Thread.Sleep(500);
 
 					info = new Message() { Type = MessageType.Info, Text = Data.MaxUserCount.ToString() };
-					sock.Send(info, info.Length, SocketFlags.None);
+					Utility.Send(sock, info);
+
+					info = new Message() { Type = MessageType.Info, Text = Utility.ToBase64(Data.ServerImage, ImageFormat.Png) };
+					Utility.Send(sock, info);
 
 					Thread sockThread = new Thread(new ThreadStart(handler.Start));
 					sockThread.Start();
 
-					byte[] buffer = new byte[2048];
-					int len = sock.Receive(buffer);
+					byte[] buffer = Utility.Receive(sock);
+					int len = buffer.Length;
 
 					if (JoinedUser != null)
 						JoinedUser(new UserEventArgs(Encoding.UTF8.GetString(buffer, 0, len), ((IPEndPoint)sock.RemoteEndPoint).Address.ToString(), ((IPEndPoint)sock.RemoteEndPoint).Port));
@@ -112,7 +116,7 @@ namespace TMR
 			_listener.Stop();
 			foreach (var it in Users)
 			{
-				it.Socket.Send(new Message() { Text = "Server Closed", Type = MessageType.Kick }.ToBytes());
+				Utility.Send(it.Socket, new Message() { Text = "Server Closed.", Type = MessageType.Kick });
 			}
 			Users.Clear();
 			isRun = false;
@@ -122,7 +126,7 @@ namespace TMR
 		{
 			foreach (var it in Users)
 			{
-				it.Socket.Send(message.ToBytes());
+				Utility.Send(it.Socket, message);
 			}
 
 			if (SendMessage != null)
@@ -131,7 +135,7 @@ namespace TMR
 
 		public void SendToUser(User u, Message message)
 		{
-			u.Socket.Send(message.ToBytes());
+			Utility.Send(u.Socket, message);
 			if (SendMessage != null)
 				SendMessage(new MessageEventArgs(message));
 		}
@@ -139,7 +143,7 @@ namespace TMR
 		public void Kick(User u, string Reason)
 		{
 			u.Handler.Stop();
-			u.Socket.Send(new Message() { Text = Reason, Type = MessageType.Kick }.ToBytes());
+			Utility.Send(u.Socket, new Message() { Text = Reason, Type = MessageType.Kick });
 			Users.Remove(u);
 
 			if (KickedUser != null)

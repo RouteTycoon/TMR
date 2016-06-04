@@ -54,7 +54,7 @@ namespace TMR
 		{
 			if (Server.ServerName == string.Empty)
 			{
-				_client.Client.Send(Encoding.UTF8.GetBytes(GUID));
+				Utility.Send(_client.Client, Encoding.UTF8.GetBytes(GUID));
 				Server.ServerName = e.Message.Text;
 				return;
 			}
@@ -65,11 +65,15 @@ namespace TMR
 				return;
 			}
 
+			if (Server.ServerImage == null)
+			{
+				Server.ServerImage = Utility.ToImage(e.Message.Text);
+				return;
+			}
+
 			if (e.Message.Type == MessageType.Kick)
 			{
 				isRun = false;
-
-				_client.Client.Send(new Message() { Type = MessageType.Left, Text = GUID });
 
 				if (Kicked != null)
 					Kicked(new KickEventArgs(GUID, ((IPEndPoint)_client.Client.RemoteEndPoint).Address.ToString(), ((IPEndPoint)_client.Client.RemoteEndPoint).Port, e.Message.Text));
@@ -87,8 +91,8 @@ namespace TMR
 
 			while (isRun)
 			{
-				byte[] buffer = new byte[2048];
-				int len = _client.Client.Receive(buffer);
+				byte[] buffer = Utility.Receive(_client.Client);
+				int len = buffer.Length;
 
 				if (!isRun) return;
 
@@ -103,7 +107,7 @@ namespace TMR
 		{
 			isRun = false;
 
-			_client.Client.Send(new Message() { Type = MessageType.Left, Text = GUID });
+			Utility.Send(_client.Client, new Message() { Type = MessageType.Left, Text = GUID });
 
 			if (Left != null)
 				Left(new UserEventArgs(GUID, ((IPEndPoint)_client.Client.RemoteEndPoint).Address.ToString(), ((IPEndPoint)_client.Client.RemoteEndPoint).Port));
@@ -118,7 +122,7 @@ namespace TMR
 
 		public void SendToServer(Message message)
 		{
-			_client.Client.Send(message);
+			Utility.Send(_client.Client, message);
 			if (SendMessage != null)
 				SendMessage(new MessageEventArgs(message));
 		}
