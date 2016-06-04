@@ -84,5 +84,13 @@ namespace TMR
 		{
 			return File.ReadAllBytes(path);
 		}
-	}
+
+		public static Image TransparentImage
+		{
+			get
+			{
+				return Properties.Resources.DefaultImage;
+			}
+		}
+    }
 }

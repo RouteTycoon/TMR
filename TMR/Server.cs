@@ -138,6 +138,15 @@ namespace TMR
 				SendMessage(new MessageEventArgs(message));
 		}
 
+		public void SendToOtherUser(User u, Message message)
+		{
+			foreach (var it in Users)
+			{
+				if (it == u) continue;
+				Utility.Send(it.Socket, message);
+			}
+		}
+
 		public void Kick(User u, string Reason)
 		{
 			u.Handler.Stop();
@@ -146,6 +155,16 @@ namespace TMR
 
 			if (KickedUser != null)
 				KickedUser(new KickEventArgs(u.GUID, u.IP, u.Port, Reason));
+		}
+
+		public User GetUserByGuid(string guid)
+		{
+			return Users.Find((e) => { return e.GUID == guid; });
+		}
+
+		public User GetUserByIP(string ip)
+		{
+			return Users.Find((e) => { return e.IP == ip; });
 		}
 	}
 }
