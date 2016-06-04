@@ -4,12 +4,12 @@ RouteTycoon Network Module<br>ⓒ 2016. Team Atus, HawTech All rights reserved.
 * 1.0.0
    * Beta 2
 
-## Info
+## Credit
 Original : RTMApi (Made by Hawaii)
 
 ## ChangeLog
-* Very long byte[] send error fix
-* ServerImage add
+* Very long byte[] send/recive error fix
+* TMR.ServerData.ServerImage Property add
 
 ## Problem
 * If buffer size very big then. OutOfMemory exception throw.
