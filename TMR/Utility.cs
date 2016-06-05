@@ -36,10 +36,7 @@ namespace TMR
 
 		public static byte[] Receive(Socket sock)
 		{
-			byte[] sizeBuf = new byte[4];
-			sock.Receive(sizeBuf, 0, sizeBuf.Length, 0);
-
-			int size = BitConverter.ToInt32(sizeBuf, 0);
+			int size = Receive_int(sock);
 			MemoryStream ms = new MemoryStream();
 
 			while (size > 0)
@@ -62,7 +59,7 @@ namespace TMR
 
 				byte[] buf = b.ToArray();
 
-				ms.Write(buf, 0, buffer.Length);
+				ms.Write(buf, 0, buf.Length);
 			}
 
 			ms.Close();
@@ -72,6 +69,34 @@ namespace TMR
 			ms.Dispose();
 
 			return data;
+		}
+
+		private static int Receive_int(Socket sock)
+		{
+			MemoryStream ms = new MemoryStream();
+			int s = 4;
+			while (s > 0)
+			{
+				byte[] buffer = new byte[s];
+				int rec = sock.Receive(buffer, 0, s, 0);
+				s -= rec;
+
+				List<byte> b = new List<byte>();
+				for (int i = 0; i < rec; i++)
+				{
+					b.Add(buffer[i]);
+				}
+				ms.Write(b.ToArray(), 0, b.Count);
+			}
+
+			byte[] sizeBuf = ms.ToArray();
+
+			ms.Close();
+			ms.Dispose();
+
+			int size = BitConverter.ToInt32(sizeBuf, 0);
+
+			return size;
 		}
 
 		public static void Send(Socket sock, byte[] data)
@@ -92,5 +117,5 @@ namespace TMR
 				return Properties.Resources.DefaultImage;
 			}
 		}
-    }
+	}
 }

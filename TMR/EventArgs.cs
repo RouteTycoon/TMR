@@ -10,12 +10,12 @@ namespace TMR
 	{
 		public UserEventArgs(string guid, string ip, int port)
 		{
-			GUID = guid;
+			Guid = guid;
 			IP = ip;
 			Port = port;
 		}
 
-		public string GUID
+		public string Guid
 		{
 			get;
 			internal set;

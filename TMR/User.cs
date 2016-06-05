@@ -21,7 +21,7 @@ namespace TMR
 			set;
 		}
 
-		public string GUID
+		public string Guid
 		{
 			get;
 			set;

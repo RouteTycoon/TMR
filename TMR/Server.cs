@@ -34,10 +34,10 @@ namespace TMR
 		{
 			if (e.Message.Type == MessageType.Left)
 			{
-				User u = Users.Find((ev) => { return ev.GUID == e.Message.Text; });
+				User u = Users.Find((ev) => { return ev.Guid == e.Message.Text; });
 				Users.Remove(u);
 				if (LeftUser != null)
-					LeftUser(new UserEventArgs(u.GUID, u.IP, u.Port));
+					LeftUser(new UserEventArgs(u.Guid, u.IP, u.Port));
 				return;
 			}
 		}
@@ -95,7 +95,7 @@ namespace TMR
 					if (JoinedUser != null)
 						JoinedUser(new UserEventArgs(Encoding.UTF8.GetString(buffer, 0, len), ((IPEndPoint)sock.RemoteEndPoint).Address.ToString(), ((IPEndPoint)sock.RemoteEndPoint).Port));
 
-					Users.Add(new User() { GUID = Encoding.UTF8.GetString(buffer, 0, len), IP = ((IPEndPoint)sock.RemoteEndPoint).Address.ToString(), Port = ((IPEndPoint)sock.RemoteEndPoint).Port, Handler = handler, Socket = sock });
+					Users.Add(new User() { Guid = Encoding.UTF8.GetString(buffer, 0, len), IP = ((IPEndPoint)sock.RemoteEndPoint).Address.ToString(), Port = ((IPEndPoint)sock.RemoteEndPoint).Port, Handler = handler, Socket = sock });
 				}
 			}
 			catch (Exception ex)
@@ -154,12 +154,12 @@ namespace TMR
 			Users.Remove(u);
 
 			if (KickedUser != null)
-				KickedUser(new KickEventArgs(u.GUID, u.IP, u.Port, Reason));
+				KickedUser(new KickEventArgs(u.Guid, u.IP, u.Port, Reason));
 		}
 
 		public User GetUserByGuid(string guid)
 		{
-			return Users.Find((e) => { return e.GUID == guid; });
+			return Users.Find((e) => { return e.Guid == guid; });
 		}
 
 		public User GetUserByIP(string ip)
