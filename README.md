@@ -11,6 +11,3 @@ TMR.Utility.Receive/Send Function original : http://it-jerryfamily.tistory.com/e
 ## ChangeLog
 * Stability improvements for receive
 * Change the names of all the class GUID property to Guid
-
-## Problem
-* Unknown (If found, please upload an 'Issues'.)
