@@ -13,3 +13,6 @@ Connect, Send, Receive Code Original : http://slaner.tistory.com/40
 * Not use TCP for transmission/reception
 * Structural changes a little
 * Add a buffer size limit (4096bytes)
+
+## Notice
+* This version is the version that does not supported TMR.ServerData.ServerImage Property transmit/receive.
