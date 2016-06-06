@@ -58,16 +58,12 @@ namespace TMR
 				}
 
 				byte[] buf = b.ToArray();
-
 				ms.Write(buf, 0, buf.Length);
 			}
 
 			ms.Close();
-
 			byte[] data = ms.ToArray();
-
 			ms.Dispose();
-
 			return data;
 		}
 
