@@ -12,149 +12,61 @@ namespace TMR
 {
 	public class Server
 	{
-		private TcpListener _listener;
-		private bool isRun = false;
-
-		#region events
 		public event UserEventHandler JoinedUser;
 		public event UserEventHandler LeftUser;
 		public event KickEventHandler KickedUser;
 		public event ServerErrorEventHandler ServerError;
 		public event MessageEventHandler SendMessage;
 		public event MessageEventHandler ReceiveMessage;
-		#endregion
 
-		public Server(int port = 31120)
+		private class AsyncObject
 		{
-			_listener = new TcpListener(IPAddress.Parse("127.0.0.1"), port);
-			ReceiveMessage += Server_ReceiveMessage;
-		}
+			public byte[] Buffer;
+			public Socket WorkingSocket;
 
-		private void Server_ReceiveMessage(MessageEventArgs e)
-		{
-			if (e.Message.Type == MessageType.Left)
+			public AsyncObject(int bufferSize)
 			{
-				User u = Users.Find((ev) => { return ev.Guid == e.Message.Text; });
-				Users.Remove(u);
-				if (LeftUser != null)
-					LeftUser(new UserEventArgs(u.Guid, u.IP, u.Port));
-				return;
+				Buffer = new byte[bufferSize];
 			}
-		}
-
-		public ServerData Data
-		{
-			get;
-			set;
 		}
 
 		public List<User> Users
 		{
 			get;
-			set;
+			private set;
 		} = new List<User>();
 
-		public void Start()
+		public ServerData Data
 		{
-			try
-			{
-				_listener.Start();
-				isRun = true;
-				while (isRun)
-				{
-					Socket sock = _listener.AcceptSocket();
+			get;
+			set;
+		} = new ServerData();
 
-					if (!isRun)
-					{
-						Utility.Send(sock, new Message() { Type = MessageType.Kick, Text = "Server Closed." });
-						return;
-					}
-					else if (Data.MaxUserCount <= Users.Count)
-					{
-						Utility.Send(sock, new Message() { Type = MessageType.Kick, Text = "Server Full." });
-						return;
-					}
+		private Socket _ServerSocket = null;
+		private AsyncCallback _fnReceiveHandler;
+		private AsyncCallback _fnSendHandler;
+		private AsyncCallback _fnAcceptHandler;
 
-					ClientHandler handler = new ClientHandler(sock, ReceiveMessage);
+		public Server()
+		{
+			_fnReceiveHandler = new AsyncCallback(receive);
+			_fnSendHandler = new AsyncCallback(send);
+			_fnAcceptHandler = new AsyncCallback(connect);
 
-					byte[] info = new Message() { Type = MessageType.Info, Text = Data.ServerName };
-					Utility.Send(sock, info);
+			ReceiveMessage += Server_ReceiveMessage;
+		}
 
-					info = new Message() { Type = MessageType.Info, Text = Data.MaxUserCount.ToString() };
-					Utility.Send(sock, info);
-
-					info = new Message() { Type = MessageType.Info, Text = Utility.ToBase64(Data.ServerImage, ImageFormat.Png) };
-					Utility.Send(sock, info);
-
-					Thread sockThread = new Thread(new ThreadStart(handler.Start));
-					sockThread.Start();
-
-					byte[] buffer = Utility.Receive(sock);
-					int len = buffer.Length;
-
-					if (JoinedUser != null)
-						JoinedUser(new UserEventArgs(Encoding.UTF8.GetString(buffer, 0, len), ((IPEndPoint)sock.RemoteEndPoint).Address.ToString(), ((IPEndPoint)sock.RemoteEndPoint).Port));
-
-					Users.Add(new User() { Guid = Encoding.UTF8.GetString(buffer, 0, len), IP = ((IPEndPoint)sock.RemoteEndPoint).Address.ToString(), Port = ((IPEndPoint)sock.RemoteEndPoint).Port, Handler = handler, Socket = sock });
-				}
-			}
-			catch (Exception ex)
-			{
-				if (ServerError != null)
-					ServerError(new ServerErrorEventArgs(ex, DateTime.Now, this));
-			}
-			finally
-			{
-				Stop();
-			}
+		public void Start(ushort port)
+		{
+			_ServerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
+			_ServerSocket.Bind(new IPEndPoint(IPAddress.Any, port));
+			_ServerSocket.Listen(5);
+			_ServerSocket.BeginAccept(_fnAcceptHandler, null);
 		}
 
 		public void Stop()
 		{
-			_listener.Stop();
-			foreach (var it in Users)
-			{
-				Utility.Send(it.Socket, new Message() { Text = "Server Closed.", Type = MessageType.Kick });
-			}
-			Users.Clear();
-			isRun = false;
-		}
-
-		public void SendToAll(Message message)
-		{
-			foreach (var it in Users)
-			{
-				Utility.Send(it.Socket, message);
-			}
-
-			if (SendMessage != null)
-				SendMessage(new MessageEventArgs(message));
-		}
-
-		public void SendToUser(User u, Message message)
-		{
-			Utility.Send(u.Socket, message);
-			if (SendMessage != null)
-				SendMessage(new MessageEventArgs(message));
-		}
-
-		public void SendToOtherUser(User u, Message message)
-		{
-			foreach (var it in Users)
-			{
-				if (it == u) continue;
-				Utility.Send(it.Socket, message);
-			}
-		}
-
-		public void Kick(User u, string Reason)
-		{
-			u.Handler.Stop();
-			Utility.Send(u.Socket, new Message() { Text = Reason, Type = MessageType.Kick });
-			Users.Remove(u);
-
-			if (KickedUser != null)
-				KickedUser(new KickEventArgs(u.Guid, u.IP, u.Port, Reason));
+			_ServerSocket.Close();
 		}
 
 		public User GetUserByGuid(string guid)
@@ -165,6 +77,246 @@ namespace TMR
 		public User GetUserByIP(string ip)
 		{
 			return Users.Find((e) => { return e.IP == ip; });
+		}
+
+		public User GetUserBySocket(Socket sock)
+		{
+			return Users.Find((e) => { return e.Socket == sock; });
+		}
+
+		public bool Kick(User user, string Reason)
+		{
+			try
+			{
+				SendToUser(user, new Message() { Type = MessageType.Kick, Text = Reason });
+				Users.Remove(user);
+
+				if (KickedUser != null)
+					KickedUser(new KickEventArgs(user.Guid, user.IP, user.Port, Reason));
+
+				return true;
+			}
+			catch (Exception ex)
+			{
+				if (ServerError != null)
+					ServerError(new ServerErrorEventArgs(ex, DateTime.Now, this));
+
+				return false;
+			}
+		}
+
+		public bool SendToAll(Message message)
+		{
+			foreach (var it in Users)
+			{
+				AsyncObject ao = new AsyncObject(1);
+				ao.Buffer = message;
+				ao.WorkingSocket = it.Socket;
+
+				try
+				{
+					it.Socket.BeginSend(ao.Buffer, 0, ao.Buffer.Length, SocketFlags.None, _fnSendHandler, ao);
+				}
+				catch (Exception ex)
+				{
+					if (ServerError != null)
+						ServerError(new ServerErrorEventArgs(ex, DateTime.Now, this));
+
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		public bool SendToUser(User user, Message message)
+		{
+			AsyncObject ao = new AsyncObject(1);
+			ao.Buffer = message;
+			ao.WorkingSocket = user.Socket;
+			try
+			{
+				user.Socket.BeginSend(ao.Buffer, 0, ao.Buffer.Length, SocketFlags.None, _fnSendHandler, ao);
+			}
+			catch (Exception ex)
+			{
+				if (ServerError != null)
+					ServerError(new ServerErrorEventArgs(ex, DateTime.Now, this));
+
+				return false;
+			}
+
+			return true;
+		}
+
+		public bool SendToOther(User other, Message message)
+		{
+			foreach (var it in Users)
+			{
+				if (it == other) continue;
+
+				AsyncObject ao = new AsyncObject(1);
+				ao.Buffer = message;
+				ao.WorkingSocket = it.Socket;
+				try
+				{
+					it.Socket.BeginSend(ao.Buffer, 0, ao.Buffer.Length, SocketFlags.None, _fnSendHandler, ao);
+				}
+				catch (Exception ex)
+				{
+					if (ServerError != null)
+						ServerError(new ServerErrorEventArgs(ex, DateTime.Now, this));
+
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		private void connect(IAsyncResult ar)
+		{
+			Socket client;
+			try
+			{
+				client = _ServerSocket.EndAccept(ar);
+			}
+			catch (Exception ex)
+			{
+				if (ServerError != null)
+					ServerError(new ServerErrorEventArgs(ex, DateTime.Now, this));
+
+				return;
+			}
+
+			AsyncObject ao = new AsyncObject(4096);
+			ao.WorkingSocket = client;
+
+			User user = new User();
+			user.Socket = client;
+			user.IP = ((IPEndPoint)client.RemoteEndPoint).Address.ToString();
+			user.Port = ((IPEndPoint)client.RemoteEndPoint).Port;
+			user.Server = this;
+			user.Guid = null;
+			Users.Add(user);
+
+			Message info = new Message() { Type = MessageType.Info, Text = Data.ServerName };
+			SendToUser(user, info);
+
+			info = new Message() { Type = MessageType.Info, Text = Data.MaxUserCount.GetValueOrDefault().ToString() };
+			SendToUser(user, info);
+
+			//info = new Message() { Type = MessageType.Info, Text = Utility.ToBase64(Data.ServerImage, ImageFormat.Png) };
+			//SendToUser(user, info);
+
+			try
+			{
+				client.BeginReceive(ao.Buffer, 0, ao.Buffer.Length, SocketFlags.None, _fnReceiveHandler, ao);
+			}
+			catch (Exception ex)
+			{
+				if (ServerError != null)
+					ServerError(new ServerErrorEventArgs(ex, DateTime.Now, this));
+
+				return;
+			}
+		}
+
+		private void receive(IAsyncResult ar)
+		{
+			AsyncObject ao = (AsyncObject)ar.AsyncState;
+
+			int recvBytes;
+
+			try
+			{
+				recvBytes = ao.WorkingSocket.EndReceive(ar);
+			}
+			catch (Exception ex)
+			{
+				if (ServerError != null)
+					ServerError(new ServerErrorEventArgs(ex, DateTime.Now, this));
+
+				return;
+			}
+
+			if (recvBytes > 0)
+			{
+				byte[] msgByte = new byte[recvBytes];
+				Array.Copy(ao.Buffer, msgByte, recvBytes);
+				Message msg = new Message(msgByte);
+
+				if (ReceiveMessage != null)
+					ReceiveMessage(new MessageEventArgs(msg, ao.WorkingSocket));
+			}
+
+			try
+			{
+				ao.WorkingSocket.BeginReceive(ao.Buffer, 0, ao.Buffer.Length, SocketFlags.None, _fnReceiveHandler, ao);
+			}
+			catch (Exception ex)
+			{
+				if (ServerError != null)
+					ServerError(new ServerErrorEventArgs(ex, DateTime.Now, this));
+
+				return;
+			}
+		}
+
+		private void send(IAsyncResult ar)
+		{
+			AsyncObject ao = (AsyncObject)ar.AsyncState;
+
+			int sendBytes;
+
+			try
+			{
+				sendBytes = ao.WorkingSocket.EndSend(ar);
+			}
+			catch (Exception ex)
+			{
+				if (ServerError != null)
+					ServerError(new ServerErrorEventArgs(ex, DateTime.Now, this));
+
+				return;
+			}
+
+			if (sendBytes > 0)
+			{
+				byte[] msgByte = new byte[sendBytes];
+				Array.Copy(ao.Buffer, msgByte, sendBytes);
+
+				Message msg = new Message(msgByte);
+
+				if (SendMessage != null)
+					SendMessage(new MessageEventArgs(msg, ao.WorkingSocket));
+			}
+		}
+
+		private void Server_ReceiveMessage(MessageEventArgs e)
+		{
+			User sender = GetUserBySocket(e.Sender);
+			if (sender != null)
+			{
+				if (sender.Socket == null)
+				{
+					sender.Guid = e.Message.Text;
+
+					if (JoinedUser != null)
+						JoinedUser(new UserEventArgs(sender.Guid, sender.IP, sender.Port));
+
+					return;
+				}
+			}
+
+			if (e.Message.Type == MessageType.Left)
+			{
+				User u = Users.Find((ev) => { return ev.Guid == e.Message.Text; });
+				Users.Remove(u);
+				if (LeftUser != null)
+					LeftUser(new UserEventArgs(u.Guid, u.IP, u.Port));
+				return;
+			}
 		}
 	}
 }

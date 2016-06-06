@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -36,7 +37,7 @@ namespace TMR
 
 	public class KickEventArgs : UserEventArgs
 	{
-		public KickEventArgs(string nickname, string ip, int port, string reason) : base(nickname, ip, port)
+		public KickEventArgs(string guid, string ip, int port, string reason) : base(guid, ip, port)
 		{
 			Reason = reason;
 		}
@@ -83,14 +84,35 @@ namespace TMR
 		}
 	}
 
+	public class ClientErrorEventArgs : ErrorEventArgs
+	{
+		public ClientErrorEventArgs(Exception ex, DateTime time, Client client) : base(ex, time)
+		{
+			Client = client;
+		}
+
+		public Client Client
+		{
+			get;
+			internal set;
+		}
+	}
+
 	public class MessageEventArgs : EventArgs
 	{
-		public MessageEventArgs(Message msg)
+		public MessageEventArgs(Message msg, Socket sock)
 		{
 			Message = msg;
+			Sender = sock;
 		}
 
 		public Message Message
+		{
+			get;
+			internal set;
+		}
+
+		public Socket Sender
 		{
 			get;
 			internal set;

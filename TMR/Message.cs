@@ -22,7 +22,7 @@ namespace TMR
 
 		public Message(byte[] bytes)
 		{
-			string text = Encoding.UTF8.GetString(bytes);
+			string text = Encoding.Unicode.GetString(bytes);
 
 			Type = (MessageType)Convert.ToInt32(text.Substring(0, 1));
 			Text = text.Substring(1);
@@ -47,7 +47,7 @@ namespace TMR
 
 		public byte[] ToBytes()
 		{
-			return Encoding.UTF8.GetBytes(ToString());
+			return Encoding.Unicode.GetBytes(ToString());
 		}
 
 		public static bool operator ==(Message a, Message b)

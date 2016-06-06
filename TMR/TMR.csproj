@@ -46,7 +46,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Client.cs" />
-    <Compile Include="ClientHandler.cs" />
     <Compile Include="EventArgs.cs" />
     <Compile Include="Handlers.cs" />
     <Compile Include="Message.cs" />

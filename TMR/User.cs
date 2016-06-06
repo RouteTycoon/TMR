@@ -38,11 +38,5 @@ namespace TMR
 			get;
 			set;
 		}
-
-		internal ClientHandler Handler
-		{
-			get;
-			set;
-		}
 	}
 }
